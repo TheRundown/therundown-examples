@@ -1,0 +1,17 @@
+{
+  "name": "therundown-examples-node",
+  "version": "0.1.0",
+  "description": "Node.js examples for the TheRundown sports data API",
+  "license": "MIT",
+  "scripts": {
+    "fetch": "node fetch-events.js",
+    "parse": "node parse-lines.js",
+    "stream": "node websocket-stream.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
