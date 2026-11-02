@@ -1,57 +1,38 @@
-/**
- * Build a side-by-side moneyline comparison across sportsbooks.
- *
- * Demonstrates that every sportsbook returns lines in the same shape,
- * so one Object.entries() walk renders a comparison view.
- *
- * Requires: RUNDOWN_KEY env var. Node 18+.
+/** Compare returned open moneylines, one row per quote. RUNDOWN_KEY; Node18+.
+ * The helper spaces catalog and event calls for Free's burst limit.
  */
-
-const BASE = 'https://therundown.io/api/v2';
-const KEY = process.env.RUNDOWN_KEY;
-const NBA = 4;
-
-async function fetchJson(path, params) {
-  const url = new URL(`${BASE}${path}`);
-  url.searchParams.set('key', KEY);
-  for (const [k, v] of Object.entries(params ?? {})) {
-    url.searchParams.set(k, v);
-  }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} on ${path}`);
-  return res.json();
-}
+const { BOOKS, createClient, moneylines } = require('./v2');
 
 async function main() {
+  const get = createClient();
   const books = Object.fromEntries(
-    (await fetchJson('/affiliates')).affiliates.map((a) => [
-      String(a.affiliate_id),
-      a.name,
+    ((await get('/affiliates')).affiliates ?? []).map((book) => [
+      String(book.affiliate_id),
+      book.affiliate_name ?? book.name ?? String(book.affiliate_id),
     ]),
   );
   const today = new Date().toISOString().slice(0, 10);
-  const { events = [] } = await fetchJson(`/sports/${NBA}/events/${today}`, {
+  const body = await get(`/sports/4/events/${today}`, {
+    affiliate_ids: Object.keys(BOOKS).join(','),
     market_ids: '1',
     main_line: 'true',
+    hide_closed: 'true',
   });
-
-  for (const ev of events) {
-    const home = ev.teams.find((t) => t.is_home)?.name ?? '?';
-    const away = ev.teams.find((t) => !t.is_home)?.name ?? '?';
-    console.log(`\n=== ${away} @ ${home} ===`);
-    console.log('Book                  Home     Away');
-    console.log('--------------------------------------');
-    for (const [affId, markets] of Object.entries(ev.lines ?? {})) {
-      const ml = markets.moneyline ?? {};
-      const name = (books[affId] ?? affId).padEnd(20);
-      const home = String(ml.home ?? '-').padStart(8);
-      const away = String(ml.away ?? '-').padStart(8);
-      console.log(`${name} ${home} ${away}`);
+  for (const event of body.events ?? []) {
+    console.log(`\n=== ${event.event_id} (${event.event_date}) ===`);
+    console.log(
+      'Book                 Selection                      Market/period     Price',
+    );
+    for (const row of moneylines(event)) {
+      console.log(
+        `${(books[row.book] ?? row.book).padEnd(20)} ${row.participant.padEnd(30)} ${(row.market_id + '/' + row.period_id).padEnd(14)} ${String(row.price).padStart(8)}`,
+      );
     }
   }
 }
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module)
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+module.exports = { main };
