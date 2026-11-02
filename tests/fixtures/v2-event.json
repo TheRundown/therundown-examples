@@ -1,0 +1,72 @@
+{
+  "events": [
+    {
+      "event_id": "061bb212f95220c351f78a7731e29dcd",
+      "sport_id": 2,
+      "event_date": "2026-11-01T18:00:00Z",
+      "teams": [
+        {
+          "team_id": 65,
+          "name": "Baltimore",
+          "is_home": false
+        },
+        {
+          "team_id": 61,
+          "name": "Buffalo",
+          "is_home": true
+        }
+      ],
+      "markets": [
+        {
+          "market_id": 1,
+          "period_id": 0,
+          "name": "moneyline",
+          "participants": [
+            {
+              "id": 61,
+              "type": "TYPE_TEAM",
+              "name": "Buffalo Bills",
+              "lines": [
+                {
+                  "prices": {
+                    "19": {
+                      "price": -170,
+                      "is_main_line": true,
+                      "updated_at": "2026-10-29T12:37:01Z"
+                    },
+                    "23": {
+                      "price": -168,
+                      "is_main_line": true,
+                      "updated_at": "2026-10-29T13:22:30Z"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": 65,
+              "type": "TYPE_TEAM",
+              "name": "Baltimore Ravens",
+              "lines": [
+                {
+                  "prices": {
+                    "19": {
+                      "price": 142,
+                      "is_main_line": true,
+                      "updated_at": "2026-10-29T12:37:01Z"
+                    },
+                    "23": {
+                      "price": 142,
+                      "is_main_line": true,
+                      "updated_at": "2026-10-29T13:22:30Z"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,57 +1,32 @@
-/**
- * Fetch today's NBA events and print the moneyline for each game.
- *
- * Requires:
- *   - RUNDOWN_KEY env var
- *   - Node 18+ (uses the built-in `fetch`)
+/** Print today's open NBA moneylines. Requires RUNDOWN_KEY; Node18+.
+ * If today is empty, choose a returned UTC schedule date. Free is delayed prematch.
  */
-
-const BASE = 'https://therundown.io/api/v2';
-const KEY = process.env.RUNDOWN_KEY;
-if (!KEY) {
-  console.error('RUNDOWN_KEY env var is required. Get one at https://therundown.io/docs/quickstart');
-  process.exit(1);
-}
-
-// Sport IDs come from /api/v2/sports. NBA is 4.
-const NBA = 4;
-// Affiliate IDs come from /api/v2/affiliates.
-const AFFILIATES = '3,19,23';
+const { BOOKS, createClient, moneylines } = require('./v2');
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10);
-  const url = new URL(`${BASE}/sports/${NBA}/events/${today}`);
-  url.searchParams.set('key', KEY);
-  url.searchParams.set('affiliate_ids', AFFILIATES);
-  url.searchParams.set('market_ids', '1,2,3');
-  url.searchParams.set('main_line', 'true');
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  }
-  const { events = [] } = await res.json();
-
-  if (events.length === 0) {
-    console.log(`No NBA events on ${today}.`);
-    return;
-  }
-
-  for (const ev of events) {
-    const home = ev.teams.find((t) => t.is_home)?.name ?? '?';
-    const away = ev.teams.find((t) => !t.is_home)?.name ?? '?';
-    console.log(`\n${away} @ ${home}  (${ev.event_date})`);
-
-    for (const [affiliateId, markets] of Object.entries(ev.lines ?? {})) {
-      const ml = markets.moneyline;
-      if (ml) {
-        console.log(`  book ${affiliateId}: home=${ml.home ?? '?'}  away=${ml.away ?? '?'}`);
-      }
+  const body = await createClient()(`/sports/4/events/${today}`, {
+    affiliate_ids: Object.keys(BOOKS).join(','),
+    market_ids: '1',
+    main_line: 'true',
+    hide_closed: 'true',
+  });
+  if (!body.events?.length)
+    console.log(
+      `No NBA events returned for UTC date ${today}; check the schedule.`,
+    );
+  for (const event of body.events ?? []) {
+    console.log(`\n${event.event_id} (${event.event_date})`);
+    for (const row of moneylines(event)) {
+      console.log(
+        `  ${row.participant} | ${BOOKS[row.book]} | market ${row.market_id} period ${row.period_id} | ${row.price > 0 ? '+' : ''}${row.price}`,
+      );
     }
   }
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module)
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+module.exports = { main };

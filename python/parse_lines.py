@@ -1,54 +1,31 @@
-"""Build a side-by-side moneyline comparison table across sportsbooks.
+"""Compare returned open moneylines from three sportsbooks, one row per quote.
 
-Demonstrates the unified schema — every sportsbook returns lines in the
-same shape, so a single dict-walk renders a comparison view.
-
-Requires:
-    - RUNDOWN_KEY env var
-    - requests:  pip install requests
+Run: python parse_lines.py. Requires RUNDOWN_KEY and requests.
+The helper spaces the catalog and event calls for Free's burst limit.
 """
+from datetime import datetime, timezone
 
-import datetime as dt
-import os
-
-import requests
-
-BASE = "https://therundown.io/api/v2"
-KEY = os.environ["RUNDOWN_KEY"]
-NBA = 4
+from v2 import BOOKS, Client, moneylines
 
 
-def affiliate_lookup() -> dict[str, str]:
-    """Map affiliate IDs → human names. Cache this in your app."""
-    r = requests.get(f"{BASE}/affiliates", params={"key": KEY}, timeout=10)
-    r.raise_for_status()
-    return {str(a["affiliate_id"]): a["name"] for a in r.json()["affiliates"]}
-
-
-def main() -> None:
-    books = affiliate_lookup()
-    today = dt.date.today().isoformat()
-    r = requests.get(
-        f"{BASE}/sports/{NBA}/events/{today}",
-        params={"key": KEY, "market_ids": "1", "main_line": "true"},
-        timeout=10,
-    )
-    r.raise_for_status()
-    events = r.json().get("events", [])
-
-    for ev in events:
-        teams = ev["teams"]
-        home = next(t["name"] for t in teams if t.get("is_home"))
-        away = next(t["name"] for t in teams if not t.get("is_home"))
-        print(f"\n=== {away} @ {home} ===")
-        print(f"{'Book':<20} {'Home':>8} {'Away':>8}")
-        print("-" * 38)
-        for aff_id, markets in ev.get("lines", {}).items():
-            ml = markets.get("moneyline") or {}
-            print(
-                f"{books.get(aff_id, aff_id):<20} "
-                f"{ml.get('home', '-'):>8} {ml.get('away', '-'):>8}"
-            )
+def main():
+    client = Client()
+    catalog = client.get("/affiliates")
+    books = {str(book["affiliate_id"]): book.get("affiliate_name") or book.get("name") or str(book["affiliate_id"])
+             for book in catalog.get("affiliates") or []}
+    today = datetime.now(timezone.utc).date().isoformat()
+    body = client.get(f"/sports/4/events/{today}", {
+        "affiliate_ids": ",".join(BOOKS), "market_ids": "1",
+        "main_line": "true", "hide_closed": "true",
+    })
+    for event in body.get("events") or []:
+        print(f"\n=== {event['event_id']} ({event['event_date']}) ===")
+        print(f"{'Book':<20} {'Selection':<30} {'Market/period':<14} {'Price':>8}")
+        for row in moneylines(event):
+            print(f"{books.get(row['book'], row['book']):<20} "
+                  f"{row['participant']:<30} "
+                  f"{str(row['market_id']) + '/' + str(row['period_id']):<14} "
+                  f"{row['price']:>+8g}")
 
 
 if __name__ == "__main__":
