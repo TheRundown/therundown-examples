@@ -92,7 +92,7 @@ Discover IDs with `GET /api/v2/sports`, `GET /api/v2/affiliates`, and `GET /api/
 
 ## Why TheRundown
 
-- **Plans for different needs.** Free includes five-minute-delayed prematch full-game main lines from DraftKings, FanDuel, and BetMGM, at 1 request/second. Starter is $49/month with 60-second-delayed REST; Pro is $149/month with 30-second-delayed REST; Ultra is $399/month with real-time REST and WebSocket access. See [current pricing](https://therundown.io/pricing/api) for details.
+- **Plans for different needs.** Free includes five-minute-delayed prematch full-game main lines from DraftKings, FanDuel, and BetMGM, at 1 request/second. Starter is $69/month with 60-second-delayed REST; Pro is $249/month with 30-second-delayed REST; Ultra is $599/month with real-time REST and WebSocket access. See [current pricing](https://therundown.io/pricing/api) for details.
 - **One schema for everything.** Books and markets use the same structured response format.
 
 ## Links
